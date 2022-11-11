@@ -14,21 +14,12 @@ struct Terminal {
 
 impl Terminal {
     fn default() -> io::Result<Self> {
-        let (height, weight) = termion::terminal_size()?;
+        let (height, weight) = terminal_size()?;
         Ok(Self { height, weight })
     }
 }
 
 impl Terminal {
-    pub(super) fn alternate(&self) -> &Self {
-        let _alter = stdout().into_alternate_screen().unwrap();
-        self
-    }
-
-    pub(super) fn raw_mode(&self) -> &Self {
-        let _stdout = stdout().into_raw_mode().unwrap();
-        self
-    }
 
     pub(super) fn clear_screen(&self) -> &Self {
         print!("{}", clear::All);
@@ -75,12 +66,10 @@ impl Editor {
 
     pub fn run(&mut self) {
         self.terminal.clear_screen();
-        self.terminal.alternate();
+        let _alter = stdout().into_alternate_screen().unwrap();
 
         for _ in 0..self.terminal.height {
-            self.terminal
-                .print_fg("~", Rgb(0x3b, 0x92, 0xe3))
-                .newline();
+            self.terminal.print_fg("~", Rgb(0x3b, 0x92, 0xe3)).newline();
         }
 
         self.terminal.print_fg("", Rgb(255, 255, 255));
@@ -88,13 +77,13 @@ impl Editor {
 
         stdout().flush().unwrap();
 
-        self.terminal.raw_mode();
+        let _stdout = stdout().into_raw_mode().unwrap();
 
         loop {
             self.proc_key();
 
             if self.should_exit {
-                break;
+                return;
             }
         }
     }
@@ -114,7 +103,7 @@ impl Editor {
     pub fn read_key(&self) -> io::Result<Key> {
         loop {
             if let Some(key) = stdin().lock().keys().next() {
-                return key
+                return key;
             }
         }
     }
