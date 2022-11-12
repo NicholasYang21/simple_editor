@@ -138,10 +138,12 @@ impl Editor {
                 self.terminal.print(format!("{}", i).as_str()).nl();
             }
 
-            self.terminal
-                .print(format!("{}", x).as_str());
+            self.terminal.print(format!("{}", x).as_str());
 
-            self.cursor_pos = Coord { x: self.file.lines.len(), y: x.len() };
+            self.cursor_pos = Coord {
+                x: self.file.lines.len(),
+                y: x.len(),
+            };
         }
     }
 
@@ -163,7 +165,9 @@ impl Editor {
         match key.unwrap() {
             Key::Ctrl('q') => self.should_exit = true,
             Key::Up => {
-                if self.file.is_empty() { return; }
+                if self.file.is_empty() {
+                    return;
+                }
 
                 if x > 2 {
                     x = x.saturating_sub(1);
@@ -173,10 +177,12 @@ impl Editor {
                         y = before.len() + 1;
                     }
                 }
-            },
+            }
 
             Key::Down => {
-                if self.file.is_empty() { return; }
+                if self.file.is_empty() {
+                    return;
+                }
 
                 if x < text_height {
                     x += 1;
@@ -186,10 +192,12 @@ impl Editor {
                         y = next.len() + 1;
                     }
                 }
-            },
+            }
 
             Key::Left => {
-                if self.file.is_empty() { return; }
+                if self.file.is_empty() {
+                    return;
+                }
 
                 if y > 1 {
                     y -= 1;
@@ -201,10 +209,12 @@ impl Editor {
                         y = 0
                     }
                 }
-            },
+            }
 
             Key::Right => {
-                if self.file.is_empty() { return; }
+                if self.file.is_empty() {
+                    return;
+                }
 
                 if y <= text_width {
                     y += 1;
@@ -214,18 +224,18 @@ impl Editor {
                         y = 0
                     }
                 }
-            },
+            }
 
             Key::Home => y = 0,
             Key::End => x = text_width + 1,
 
             Key::PageUp => {
                 unimplemented!()
-            },
+            }
 
             Key::PageDown => {
                 unimplemented!()
-            },
+            }
 
             _ => (),
         }
