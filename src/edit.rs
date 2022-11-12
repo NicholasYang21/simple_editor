@@ -5,86 +5,10 @@ use raw::IntoRawMode;
 use screen::IntoAlternateScreen;
 use std::io;
 use std::io::{stdin, stdout, Write};
-use std::fs;
 use termion::*;
 use unicode_segmentation::UnicodeSegmentation;
 
-struct Terminal {
-    height: u16,
-    width: u16,
-}
-
-impl Terminal {
-    fn default() -> io::Result<Self> {
-        let (width, height) = terminal_size()?;
-        Ok(Self { height, width })
-    }
-}
-
-#[derive(PartialEq, Eq)]
-enum ColorOpt {
-    Fg,
-    Bg,
-}
-
-impl Terminal {
-    pub(super) fn clear_screen(&self) -> &Self {
-        print!("{}", clear::All);
-        print!("{}", cursor::Goto(1, 1));
-        self
-    }
-
-    pub(super) fn set_color<C>(&self, option: ColorOpt, color: C) -> &Self
-    where
-        C: Color,
-    {
-        if option == ColorOpt::Fg {
-            print!("{}", color::Fg(color));
-        } else {
-            print!("{}", color::Bg(color));
-        }
-
-        self
-    }
-
-    pub(super) fn reset_color(&self) -> &Self {
-        self.set_color(ColorOpt::Fg, color::Reset)
-            .set_color(ColorOpt::Bg, color::Reset)
-    }
-
-    pub(super) fn print(&self, content: &str) -> &Self {
-        print!("{}", content);
-        stdout().flush().unwrap();
-
-        self
-    }
-
-    pub(super) fn cursor(&self, x: u16, y: u16) -> &Self {
-        print!("{}", cursor::Goto(x, y));
-        stdout().flush().unwrap();
-
-        self
-    }
-
-    pub(super) fn nl(&self) -> &Self {
-        println!();
-        self
-    }
-
-    pub(super) fn hide_cursor(&self) -> &Self {
-        print!("{}", cursor::Hide);
-        stdout().flush().unwrap();
-
-        self
-    }
-
-    pub(super) fn show_cursor(&self) -> &Self {
-        print!("{}", cursor::Show);
-        stdout().flush().unwrap();
-
-        self
-    }
-}
+use crate::file::{File, load_file};
 
 pub(super) struct Editor {
     should_exit: bool,
@@ -102,7 +26,7 @@ impl Editor {
                 should_exit: false,
                 terminal,
                 file_name: "[Unnamed]".into(),
-                file: File {},
+                file: File { lines: Vec::new(), dirty: false },
             };
         }
 
@@ -205,20 +129,79 @@ impl Editor {
     }
 }
 
-fn load_file(path: &str) -> File {
-    let buffer = fs::read_to_string(path);
+struct Terminal {
+    height: u16,
+    width: u16,
+}
 
-    if buffer.is_err() {
-        return File {}
+impl Terminal {
+    fn default() -> io::Result<Self> {
+        let (width, height) = terminal_size()?;
+        Ok(Self { height, width })
+    }
+}
+
+#[derive(PartialEq, Eq)]
+enum ColorOpt {
+    Fg,
+    Bg,
+}
+
+impl Terminal {
+    pub(super) fn clear_screen(&self) -> &Self {
+        print!("{}", clear::All);
+        print!("{}", cursor::Goto(1, 1));
+        self
     }
 
-    unimplemented!()
-}
+    pub(super) fn set_color<C>(&self, option: ColorOpt, color: C) -> &Self
+        where
+            C: Color,
+    {
+        if option == ColorOpt::Fg {
+            print!("{}", color::Fg(color));
+        } else {
+            print!("{}", color::Bg(color));
+        }
 
-struct File {
+        self
+    }
 
-}
+    pub(super) fn reset_color(&self) -> &Self {
+        self.set_color(ColorOpt::Fg, color::Reset)
+            .set_color(ColorOpt::Bg, color::Reset)
+    }
 
-struct Row {
-    content: String,
+    pub(super) fn print(&self, content: &str) -> &Self {
+        print!("{}", content);
+        stdout().flush().unwrap();
+
+        self
+    }
+
+    pub(super) fn cursor(&self, x: u16, y: u16) -> &Self {
+        print!("{}", cursor::Goto(x, y));
+        stdout().flush().unwrap();
+
+        self
+    }
+
+    pub(super) fn nl(&self) -> &Self {
+        println!();
+        self
+    }
+
+    pub(super) fn hide_cursor(&self) -> &Self {
+        print!("{}", cursor::Hide);
+        stdout().flush().unwrap();
+
+        self
+    }
+
+    pub(super) fn show_cursor(&self) -> &Self {
+        print!("{}", cursor::Show);
+        stdout().flush().unwrap();
+
+        self
+    }
 }
