@@ -86,14 +86,6 @@ impl Editor {
 
         let len = self.file_name.graphemes(true).count();
 
-        if self.terminal.width <= 1 {
-            self.terminal
-                .set_color(ColorOpt::Bg, color::White)
-                .set_color(ColorOpt::Fg, color::Black)
-                .print(".")
-                .reset_color();
-        }
-
         if len > self.terminal.width as usize {
             let mut temp = self.file_name.chars().collect::<Vec<char>>();
             let diff = len - self.terminal.width as usize;
@@ -110,15 +102,8 @@ impl Editor {
             let front = (self.terminal.width as usize - len) / 2;
             let back = self.terminal.width as usize - front - len;
 
-            let mut front_spaces: String = String::new();
-            let mut back_spaces: String = String::new();
-
-            for _ in 0..front {
-                front_spaces.push(' ');
-            }
-            for _ in 0..back {
-                back_spaces.push(' ');
-            }
+            let mut front_spaces: String = " ".repeat(front);
+            let mut back_spaces: String = " ".repeat(back);
 
             self.terminal
                 .set_color(ColorOpt::Bg, color::White)
