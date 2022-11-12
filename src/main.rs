@@ -1,8 +1,8 @@
 extern crate core;
 
 mod edit;
-mod row;
 mod file;
+mod row;
 
 use clap::Parser;
 

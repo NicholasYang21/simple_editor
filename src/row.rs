@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Debug)]
 pub(super) struct Row {
@@ -16,5 +17,11 @@ impl From<&str> for Row {
 impl Display for Row {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.content)
+    }
+}
+
+impl Row {
+    pub fn len(&self) -> usize {
+        self.content.graphemes(true).count()
     }
 }

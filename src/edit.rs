@@ -8,11 +8,23 @@ use std::io::{stdin, stdout, Write};
 use termion::*;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::file::{File, load_file};
+use crate::file::{load_file, File};
+
+struct Coord {
+    x: usize,
+    y: usize,
+}
+
+impl Default for Coord {
+    fn default() -> Self {
+        Self { x: 2, y: 1 }
+    }
+}
 
 pub(super) struct Editor {
     should_exit: bool,
     terminal: Terminal,
+    cursor_pos: Coord,
     file_name: String,
     file: File,
 }
@@ -25,14 +37,19 @@ impl Editor {
             return Self {
                 should_exit: false,
                 terminal,
+                cursor_pos: Coord::default(),
                 file_name: "[Unnamed]".into(),
-                file: File { lines: Vec::new(), dirty: false },
+                file: File {
+                    lines: Vec::new(),
+                    dirty: false,
+                },
             };
         }
 
         Self {
             should_exit: false,
             terminal,
+            cursor_pos: Coord::default(),
             file: load_file(filename.as_str()),
             file_name: filename,
         }
@@ -43,17 +60,24 @@ impl Editor {
         stdout().flush().unwrap();
 
         self.initialize();
+        self.refresh();
 
         let _stdout = stdout().into_raw_mode().unwrap();
 
         loop {
             self.proc_key();
+            self.refresh();
 
             if self.should_exit {
                 self.terminal.show_cursor();
                 return;
             }
         }
+    }
+
+    fn refresh(&mut self) {
+        self.terminal
+            .cursor(self.cursor_pos.x as u16, self.cursor_pos.y as u16);
     }
 
     fn initialize(&mut self) {
@@ -104,17 +128,20 @@ impl Editor {
                 .reset_color();
         }
 
-        let mut temp = self.file.lines.clone();
-        let mut temp2 = temp.clone();
+        let temp = self.file.lines.clone();
+        let mut temp2 = temp;
 
         if !self.file.lines.is_empty() {
-            temp2.pop();
+            let x = temp2.pop().unwrap();
 
             for i in temp2 {
                 self.terminal.print(format!("{}", i).as_str()).nl();
             }
 
-            self.terminal.print(format!("{}", temp.pop().unwrap()).as_str());
+            self.terminal
+                .print(format!("{}", x).as_str());
+
+            self.cursor_pos = Coord { x: self.file.lines.len(), y: x.len() };
         }
     }
 
@@ -125,9 +152,85 @@ impl Editor {
             panic!("Cannot read a key.");
         }
 
-        if let Key::Ctrl('q') = key.unwrap() {
-            self.should_exit = true;
+        let Coord { mut x, mut y } = self.cursor_pos;
+        let text_height = self.file.lines.len();
+        let text_width = if let Some(row) = self.file.lines.get(x - 2) {
+            row.len()
+        } else {
+            1
+        };
+
+        match key.unwrap() {
+            Key::Ctrl('q') => self.should_exit = true,
+            Key::Up => {
+                if self.file.is_empty() { return; }
+
+                if x > 2 {
+                    x = x.saturating_sub(1);
+                    let before = self.file.lines.get(x - 2).unwrap();
+
+                    if y > before.len() {
+                        y = before.len() + 1;
+                    }
+                }
+            },
+
+            Key::Down => {
+                if self.file.is_empty() { return; }
+
+                if x < text_height {
+                    x += 1;
+                    let next = self.file.lines.get(x - 2).unwrap();
+
+                    if y > next.len() {
+                        y = next.len() + 1;
+                    }
+                }
+            },
+
+            Key::Left => {
+                if self.file.is_empty() { return; }
+
+                if y > 1 {
+                    y -= 1;
+                } else if x > 2 {
+                    x -= 1;
+                    if let Some(before) = self.file.lines.get(x - 2) {
+                        y = before.len() + 1
+                    } else {
+                        y = 0
+                    }
+                }
+            },
+
+            Key::Right => {
+                if self.file.is_empty() { return; }
+
+                if y <= text_width {
+                    y += 1;
+                } else if x < text_height {
+                    x += 1;
+                    if self.file.lines.get(x - 2).is_some() {
+                        y = 0
+                    }
+                }
+            },
+
+            Key::Home => y = 0,
+            Key::End => x = text_width + 1,
+
+            Key::PageUp => {
+                unimplemented!()
+            },
+
+            Key::PageDown => {
+                unimplemented!()
+            },
+
+            _ => (),
         }
+
+        self.cursor_pos = Coord { x, y }
     }
 
     fn read_key(&self) -> io::Result<Key> {
@@ -165,8 +268,8 @@ impl Terminal {
     }
 
     pub(super) fn set_color<C>(&self, option: ColorOpt, color: C) -> &Self
-        where
-            C: Color,
+    where
+        C: Color,
     {
         if option == ColorOpt::Fg {
             print!("{}", color::Fg(color));
