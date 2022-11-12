@@ -1,6 +1,7 @@
 use std::fs;
 use crate::row::Row;
 
+#[derive(Clone)]
 pub(super) struct File {
     pub(super) lines: Vec<Row>,
     pub(super) dirty: bool,

@@ -104,8 +104,18 @@ impl Editor {
                 .reset_color();
         }
 
-        self.terminal.cursor(1, 1);
-        self.terminal.hide_cursor();
+        let mut temp = self.file.lines.clone();
+        let mut temp2 = temp.clone();
+
+        if !self.file.lines.is_empty() {
+            temp2.pop();
+
+            for i in temp2 {
+                self.terminal.print(format!("{}", i).as_str()).nl();
+            }
+
+            self.terminal.print(format!("{}", temp.pop().unwrap()).as_str());
+        }
     }
 
     fn proc_key(&mut self) {
@@ -180,7 +190,7 @@ impl Terminal {
     }
 
     pub(super) fn cursor(&self, x: u16, y: u16) -> &Self {
-        print!("{}", cursor::Goto(x, y));
+        print!("{}", cursor::Goto(y, x));
         stdout().flush().unwrap();
 
         self
